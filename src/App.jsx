@@ -54,6 +54,10 @@ export default function StockAnalysisApp() {
     }
   };
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
+  fetch(`${API_URL}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock_name: stockName }) });
+
+
   const analyzeStock = async () => {
     if (!stockName.trim()) {
       setError('Please enter a stock name');
