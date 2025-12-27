@@ -30,7 +30,7 @@ export default function StockAnalysisApp() {
     }
   }, [countdown]);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  const API_URL = import.meta.env.VITE_BACKEND_URL || 'https://stock-backend-l55g.onrender.com';
 
   const checkBackendHealth = async () => {
     try {
@@ -561,7 +561,7 @@ export default function StockAnalysisApp() {
         )}
 
         <div className="mt-6 text-center text-purple-200 text-sm bg-purple-500/10 rounded-xl p-4 border border-purple-400/30">
-          <p>⚠️ <strong>Disclaimer:</strong> This analysis is for educational purposes only.</p>
+          <p>⚠️ <strong>TRY:1 Disclaimer:</strong> This analysis is for educational purposes only.</p>
         </div>
       </div>
     </div>
