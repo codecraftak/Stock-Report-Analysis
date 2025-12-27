@@ -30,9 +30,11 @@ export default function StockAnalysisApp() {
     }
   }, [countdown]);
 
+  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
   const checkBackendHealth = async () => {
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const response = await fetch(`${API_URL}/health`);
       const data = await response.json();
       setBackendStatus(data);
     } catch (err) {
@@ -42,7 +44,8 @@ export default function StockAnalysisApp() {
 
   const checkRateLimit = async () => {
     try {
-      const response = await fetch('http://localhost:8000/rate-limit');
+
+      const response = await fetch(`${API_URL}/rate-limit`);
       const data = await response.json();
       setRateLimit(data);
       if (data.is_limited && data.seconds_remaining) {
@@ -54,8 +57,7 @@ export default function StockAnalysisApp() {
     }
   };
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
-  fetch(`${API_URL}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock_name: stockName }) });
+
 
 
   const analyzeStock = async () => {
@@ -69,7 +71,7 @@ export default function StockAnalysisApp() {
     setAnalysis(null);
 
     try {
-      const response = await fetch('http://localhost:8000/analyze', {
+      const response = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock_name: stockName })
@@ -153,9 +155,8 @@ export default function StockAnalysisApp() {
         )}
 
         {backendStatus && (
-          <div className={`mb-6 p-4 rounded-xl backdrop-blur-lg border ${
-            backendStatus.status === 'healthy' ? 'bg-green-500/10 border-green-400/30' : 'bg-red-500/10 border-red-400/30'
-          }`}>
+          <div className={`mb-6 p-4 rounded-xl backdrop-blur-lg border ${backendStatus.status === 'healthy' ? 'bg-green-500/10 border-green-400/30' : 'bg-red-500/10 border-red-400/30'
+            }`}>
             <div className="flex items-center gap-2">
               {backendStatus.status === 'healthy' ? (
                 <>
@@ -220,10 +221,9 @@ export default function StockAnalysisApp() {
 
         {analysis && (
           <div className="space-y-6">
-            <div className={`${recStyle?.bg} backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 ${
-              analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD' 
+            <div className={`${recStyle?.bg} backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 ${analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD'
                 ? 'border-green-400/50' : 'border-red-400/50'
-            }`}>
+              }`}>
               <div className="text-center mb-6">
                 <div className="flex items-center justify-center gap-3 mb-4">
                   {recStyle && <recStyle.icon className={`w-16 h-16 ${recStyle.color}`} />}
@@ -231,7 +231,7 @@ export default function StockAnalysisApp() {
                     {analysis.consensus_recommendation}
                   </h2>
                 </div>
-                
+
                 <div className="max-w-2xl mx-auto mb-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-white/70">Analysis Score</span>
@@ -240,13 +240,12 @@ export default function StockAnalysisApp() {
                     </span>
                   </div>
                   <div className="h-6 bg-white/10 rounded-full overflow-hidden border border-white/20">
-                    <div 
-                      className={`h-full transition-all duration-1000 ${
-                        analysis.consensus_confidence >= 75 ? 'bg-gradient-to-r from-green-500 to-green-400' :
-                        analysis.consensus_confidence >= 60 ? 'bg-gradient-to-r from-yellow-500 to-green-400' :
-                        analysis.consensus_confidence >= 45 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
-                        'bg-gradient-to-r from-red-500 to-orange-400'
-                      }`}
+                    <div
+                      className={`h-full transition-all duration-1000 ${analysis.consensus_confidence >= 75 ? 'bg-gradient-to-r from-green-500 to-green-400' :
+                          analysis.consensus_confidence >= 60 ? 'bg-gradient-to-r from-yellow-500 to-green-400' :
+                            analysis.consensus_confidence >= 45 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+                              'bg-gradient-to-r from-red-500 to-orange-400'
+                        }`}
                       style={{ width: `${analysis.consensus_confidence}%` }}
                     />
                   </div>
@@ -257,15 +256,14 @@ export default function StockAnalysisApp() {
                   </div>
                 </div>
 
-                <div className={`inline-block px-6 py-3 ${recStyle?.bg} rounded-full border-2 mb-4 ${
-                  analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD' 
+                <div className={`inline-block px-6 py-3 ${recStyle?.bg} rounded-full border-2 mb-4 ${analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD'
                     ? 'border-green-400/50' : 'border-red-400/50'
-                }`}>
+                  }`}>
                   <p className={`text-xl font-bold ${recStyle?.color}`}>
                     {analysis.consensus_confidence >= 75 ? '🔥 STRONG' :
-                     analysis.consensus_confidence >= 60 ? '✅ MODERATE-STRONG' :
-                     analysis.consensus_confidence >= 45 ? '⚠️ MODERATE' :
-                     analysis.consensus_confidence >= 30 ? '⚠️ WEAK' : '❌ STRONG CAUTION'} 
+                      analysis.consensus_confidence >= 60 ? '✅ MODERATE-STRONG' :
+                        analysis.consensus_confidence >= 45 ? '⚠️ MODERATE' :
+                          analysis.consensus_confidence >= 30 ? '⚠️ WEAK' : '❌ STRONG CAUTION'}
                     {' '}Recommendation
                   </p>
                 </div>
@@ -282,7 +280,7 @@ export default function StockAnalysisApp() {
                   <Info className="w-6 h-6" />
                   🎯 Clear Recommendation for You
                 </h4>
-                
+
                 <div className="mb-4 p-4 bg-white/5 rounded-lg">
                   <p className="text-sm text-white/70 mb-2">📊 Score Breakdown:</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -313,7 +311,7 @@ export default function StockAnalysisApp() {
                     <p className="text-sm text-white/80">• Best for long-term investment</p>
                   </div>
                 )}
-                
+
                 {analysis.consensus_confidence >= 60 && analysis.consensus_confidence < 75 && (
                   <div className="space-y-2 text-white">
                     <p className="text-lg font-bold text-green-400">✅ STRONG HOLD - Keep the stock</p>
