@@ -10,10 +10,25 @@ export default function StockAnalysisApp() {
   const [rateLimit, setRateLimit] = useState(null);
   const [countdown, setCountdown] = useState(0);
 
+  const [connectionTimer, setConnectionTimer] = useState(0);
+
   React.useEffect(() => {
     checkBackendHealth();
     checkRateLimit();
   }, []);
+
+  // Backend connection retry timer
+  React.useEffect(() => {
+    if (connectionTimer > 0) {
+      const timer = setInterval(() => {
+        setConnectionTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    } else if (connectionTimer === 0 && backendStatus?.status === 'offline') {
+      // Auto retry when timer hits 0
+      checkBackendHealth();
+    }
+  }, [connectionTimer, backendStatus?.status]);
 
   React.useEffect(() => {
     if (countdown > 0) {
@@ -30,6 +45,7 @@ export default function StockAnalysisApp() {
     }
   }, [countdown]);
 
+  // const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
   const API_URL = import.meta.env.VITE_BACKEND_URL || 'https://stock-backend-l55g.onrender.com';
 
   const checkBackendHealth = async () => {
@@ -37,8 +53,11 @@ export default function StockAnalysisApp() {
       const response = await fetch(`${API_URL}/health`);
       const data = await response.json();
       setBackendStatus(data);
+      setConnectionTimer(0); // Reset timer on success
     } catch (err) {
       setBackendStatus({ status: 'offline', error: err.message });
+      // Set to 10 seconds for retry if not already set
+      if (connectionTimer === 0) setConnectionTimer(10);
     }
   };
 
@@ -127,7 +146,7 @@ export default function StockAnalysisApp() {
             Smart Stock Analysis
             <TrendingUp className="w-12 h-12 text-green-400" />
           </h1>
-          <p className="text-xl text-purple-200">Complete AI-Powered Analysis</p>
+          <p className="text-xl text-purple-200">Complete AI-Powered Analysis v4.2.1</p>
         </div>
 
         {rateLimit?.is_limited && (
@@ -155,9 +174,11 @@ export default function StockAnalysisApp() {
         )}
 
         {backendStatus && (
-          <div className={`mb-6 p-4 rounded-xl backdrop-blur-lg border ${backendStatus.status === 'healthy' ? 'bg-green-500/10 border-green-400/30' : 'bg-red-500/10 border-red-400/30'
+          <div className={`mb-6 p-4 rounded-xl backdrop-blur-lg border ${backendStatus.status === 'healthy'
+            ? 'bg-green-500/10 border-green-400/30'
+            : 'bg-red-500/10 border-red-400/30'
             }`}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {backendStatus.status === 'healthy' ? (
                 <>
                   <CheckCircle className="w-5 h-5 text-green-400" />
@@ -168,8 +189,19 @@ export default function StockAnalysisApp() {
                 </>
               ) : (
                 <>
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                  <span className="text-red-400 font-semibold">Backend Offline</span>
+                  <Loader2 className="w-5 h-5 text-red-400 animate-spin" />
+                  <div className="flex-1">
+                    <span className="text-red-400 font-semibold block">Connecting to Backend...</span>
+                    <span className="text-red-300 text-sm">
+                      Server might be waking up (Free Tier). Retrying in {connectionTimer}s
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => { setConnectionTimer(0); checkBackendHealth(); }}
+                    className="px-3 py-1 bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 text-sm transition-colors"
+                  >
+                    Retry Now
+                  </button>
                 </>
               )}
             </div>
@@ -222,7 +254,7 @@ export default function StockAnalysisApp() {
         {analysis && (
           <div className="space-y-6">
             <div className={`${recStyle?.bg} backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 ${analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD'
-                ? 'border-green-400/50' : 'border-red-400/50'
+              ? 'border-green-400/50' : 'border-red-400/50'
               }`}>
               <div className="text-center mb-6">
                 <div className="flex items-center justify-center gap-3 mb-4">
@@ -242,9 +274,9 @@ export default function StockAnalysisApp() {
                   <div className="h-6 bg-white/10 rounded-full overflow-hidden border border-white/20">
                     <div
                       className={`h-full transition-all duration-1000 ${analysis.consensus_confidence >= 75 ? 'bg-gradient-to-r from-green-500 to-green-400' :
-                          analysis.consensus_confidence >= 60 ? 'bg-gradient-to-r from-yellow-500 to-green-400' :
-                            analysis.consensus_confidence >= 45 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
-                              'bg-gradient-to-r from-red-500 to-orange-400'
+                        analysis.consensus_confidence >= 60 ? 'bg-gradient-to-r from-yellow-500 to-green-400' :
+                          analysis.consensus_confidence >= 45 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+                            'bg-gradient-to-r from-red-500 to-orange-400'
                         }`}
                       style={{ width: `${analysis.consensus_confidence}%` }}
                     />
@@ -257,7 +289,7 @@ export default function StockAnalysisApp() {
                 </div>
 
                 <div className={`inline-block px-6 py-3 ${recStyle?.bg} rounded-full border-2 mb-4 ${analysis.consensus_recommendation === 'BUY' || analysis.consensus_recommendation === 'HOLD'
-                    ? 'border-green-400/50' : 'border-red-400/50'
+                  ? 'border-green-400/50' : 'border-red-400/50'
                   }`}>
                   <p className={`text-xl font-bold ${recStyle?.color}`}>
                     {analysis.consensus_confidence >= 75 ? '🔥 STRONG' :
@@ -449,42 +481,30 @@ export default function StockAnalysisApp() {
                   📊 Market Metrics
                 </h3>
                 <div className="space-y-3">
-                  {analysis.marketCap && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Market Cap:</span>
-                      <span className="text-white font-semibold">{analysis.marketCap}</span>
-                    </div>
-                  )}
-                  {analysis.volume && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Volume:</span>
-                      <span className="text-white font-semibold">{analysis.volume}</span>
-                    </div>
-                  )}
-                  {analysis.dayHigh && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Day High:</span>
-                      <span className="text-white font-semibold">{analysis.dayHigh}</span>
-                    </div>
-                  )}
-                  {analysis.dayLow && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Day Low:</span>
-                      <span className="text-white font-semibold">{analysis.dayLow}</span>
-                    </div>
-                  )}
-                  {analysis.week52High && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">52W High:</span>
-                      <span className="text-white font-semibold">{analysis.week52High}</span>
-                    </div>
-                  )}
-                  {analysis.week52Low && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">52W Low:</span>
-                      <span className="text-white font-semibold">{analysis.week52Low}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Market Cap:</span>
+                    <span className="text-white font-semibold">{analysis.marketCap || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Volume:</span>
+                    <span className="text-white font-semibold">{analysis.volume || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Day High:</span>
+                    <span className="text-white font-semibold">{analysis.dayHigh || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Day Low:</span>
+                    <span className="text-white font-semibold">{analysis.dayLow || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">52W High:</span>
+                    <span className="text-white font-semibold">{analysis.week52High || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">52W Low:</span>
+                    <span className="text-white font-semibold">{analysis.week52Low || 'N/A'}</span>
+                  </div>
                 </div>
               </div>
 
@@ -494,59 +514,43 @@ export default function StockAnalysisApp() {
                   💰 Fundamental Metrics
                 </h3>
                 <div className="space-y-3">
-                  {analysis.peRatio && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">P/E Ratio:</span>
-                      <span className="text-white font-semibold">{analysis.peRatio}</span>
-                    </div>
-                  )}
-                  {analysis.eps && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">EPS:</span>
-                      <span className="text-white font-semibold">{analysis.eps}</span>
-                    </div>
-                  )}
-                  {analysis.roe && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">ROE:</span>
-                      <span className="text-white font-semibold">{analysis.roe}</span>
-                    </div>
-                  )}
-                  {analysis.debtToEquity && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Debt/Equity:</span>
-                      <span className="text-white font-semibold">{analysis.debtToEquity}</span>
-                    </div>
-                  )}
-                  {analysis.pegRatio && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">PEG Ratio:</span>
-                      <span className="text-white font-semibold">{analysis.pegRatio}</span>
-                    </div>
-                  )}
-                  {analysis.priceToBook && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Price/Book:</span>
-                      <span className="text-white font-semibold">{analysis.priceToBook}</span>
-                    </div>
-                  )}
-                  {analysis.dividendYield && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Dividend Yield:</span>
-                      <span className="text-white font-semibold">{analysis.dividendYield}</span>
-                    </div>
-                  )}
-                  {analysis.beta && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70 text-sm">Beta:</span>
-                      <span className="text-white font-semibold">{analysis.beta}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">P/E Ratio:</span>
+                    <span className="text-white font-semibold">{analysis.peRatio || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">EPS:</span>
+                    <span className="text-white font-semibold">{analysis.eps || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">ROE:</span>
+                    <span className="text-white font-semibold">{analysis.roe || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Debt/Equity:</span>
+                    <span className="text-white font-semibold">{analysis.debtToEquity || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">PEG Ratio:</span>
+                    <span className="text-white font-semibold">{analysis.pegRatio || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Price/Book:</span>
+                    <span className="text-white font-semibold">{analysis.priceToBook || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Dividend Yield:</span>
+                    <span className="text-white font-semibold">{analysis.dividendYield || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Beta:</span>
+                    <span className="text-white font-semibold">{analysis.beta || 'N/A'}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Data Sources Footer
+            {/* Data Sources Footer */}
             {analysis.data_sources_used && analysis.data_sources_used.length > 0 && (
               <div className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10 text-center">
                 <p className="text-sm text-white/60">
@@ -556,12 +560,12 @@ export default function StockAnalysisApp() {
                   Last updated: {new Date(analysis.analysis_timestamp).toLocaleString('en-IN')}
                 </p>
               </div>
-            )} */}
+            )}
           </div>
         )}
 
         <div className="mt-6 text-center text-purple-200 text-sm bg-purple-500/10 rounded-xl p-4 border border-purple-400/30">
-          <p>⚠️ <strong>TRY:1 Disclaimer:</strong> This analysis is for educational purposes only.</p>
+          <p>⚠️ <strong>TRY:2 Disclaimer:</strong> This analysis is for educational purposes only.</p>
         </div>
       </div>
     </div>
